@@ -2,6 +2,8 @@ import { Pinecone } from "@pinecone-database/pinecone";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { OpenAI } from "openai";
 
+export const maxDuration = 60;
+
 export async function POST(req) {
     const pc = new Pinecone({
         apiKey: process.env.PINECONE_API_KEY,

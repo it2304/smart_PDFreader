@@ -3,6 +3,8 @@ import { OpenAI } from "openai";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { Pinecone } from "@pinecone-database/pinecone";
 
+export const maxDuration = 60;
+
 const systemPrompt = `
 You are an intelligent assistant whose purpose is to answer questions solely based on the provided text-embedding data and question guidelines. 
 Follow these strict guidelines:
