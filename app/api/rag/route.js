@@ -23,6 +23,7 @@ export async function POST(req) {
         const index = pc.Index("rag");
         //const indexDescription = await pc.describeIndex("rag");
         //console.log("Index Description:", indexDescription);
+        console.log("Successfully connected to Pinecone rag index");
         
 
         const ragData = [];
@@ -36,9 +37,11 @@ export async function POST(req) {
             //console.log(questionEmbedding)
             //console.log(typeof code_name)
 
-            const statsResponse = await index.describeIndexStats({
-                filter: { namespace: code_name }
-            });
+            console.log("api/rag: created question embedding")
+
+            //const statsResponse = await index.describeIndexStats({
+            //    filter: { namespace: code_name }
+            //});
             //console.log("Namespace stats:", statsResponse);
 
             const queryResult = await index.namespace(code_name).query({
@@ -46,6 +49,8 @@ export async function POST(req) {
                 includeMetadata: true,
                 vector: questionEmbedding.data[0].embedding,
             });
+
+            console.log("api/rag: queryResult retrieved")
 
             //console.log("Question embedding dimension:", questionEmbedding.data[0].embedding);
             //console.log(queryResult)
@@ -58,6 +63,8 @@ export async function POST(req) {
                 similarity: match.score,
                 questionId: question.id
             }));
+
+            console.log("api/rag: relevantData retrieved")
 
             ragData.push(...relevantData);
         }
