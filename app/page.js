@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from "react";
-import { Box, Paper, Typography, useMediaQuery, Switch, Select, MenuItem, FormControl, InputLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, Button } from "@mui/material";
+import { Box, Paper, Typography, useMediaQuery, Switch, Select, MenuItem, FormControl, InputLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, Button, TextField } from "@mui/material";
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
@@ -10,6 +10,7 @@ export default function Home() {
   const isMobile = useMediaQuery('(max-width:600px)');
   const [companies, setCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState('');
+  const [newCompanyName, setNewCompanyName] = useState('');
   const [answers, setAnswers] = useState([]);
 
   useEffect(() => {
@@ -28,16 +29,34 @@ export default function Home() {
   };
 
   const handleCompanySelect = async (event) => {
-    const selectedCompany = companies.find(company => company.name === event.target.value);
-    setSelectedCompany(selectedCompany.name);
+    const selectedCompanyName = event.target.value;
+    setSelectedCompany(selectedCompanyName);
+    await processCompany(selectedCompanyName);
+  };
+
+  const handleNewCompanySubmit = async (event) => {
+    event.preventDefault();
+    if (newCompanyName.trim()) {
+      await processCompany(newCompanyName.trim());
+      setNewCompanyName('');
+    }
+  };
+
+  const processCompany = async (companyName) => {
     setLoading(true);
+    const companyCodeName = companyName.toLowerCase().replace(/\s+/g, '--');
 
     try {
+      console.log("Processing company:", companyName);
+
+      const currentUrl = window.location.origin;
+      console.log("Current URL from page:", currentUrl);
+      
       // First, check if scores exist for the selected company
       const scoresResponse = await fetch('/api/getScores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code_name: selectedCompany.code_name }),
+        body: JSON.stringify({ code_name: companyCodeName }),
       });
 
       if (scoresResponse.ok) {
@@ -46,20 +65,20 @@ export default function Home() {
           // If scores exist, use them
           setAnswers(scoresData.answers);
           setLoading(false);
-          return;  // Add this line to exit the function early
+          return;
         }
       }
 
       // If no scores exist, proceed with chat
-      const chatResponse = await fetch('/api/chat', {
+      let chatResponse = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code_name: selectedCompany.code_name }),
+        body: JSON.stringify({ code_name: companyCodeName, currentUrl: currentUrl }),
       });
 
       if (!chatResponse.ok) throw new Error('Failed to process questions');
       const data = await chatResponse.json();
-      console.log('Chat API response:', data); // Log the entire response
+      console.log('Chat API response:', data);
       setAnswers(data.answers);
     } catch (error) {
       console.error('Error processing company data:', error);
@@ -71,6 +90,24 @@ export default function Home() {
   const handleCopyScores = () => {
     const scores = answers.map(answer => answer.score).join('\t');
     navigator.clipboard.writeText(scores).then(() => {
+      alert('Scores copied to clipboard!');
+    }).catch(err => {
+      console.error('Failed to copy scores: ', err);
+    });
+  };
+
+  const handleCopyExplanantions = () => {
+    const explanantions = answers.map(answer => answer.explanation).join('\t');
+    navigator.clipboard.writeText(explanantions).then(() => {
+      alert('Scores copied to clipboard!');
+    }).catch(err => {
+      console.error('Failed to copy scores: ', err);
+    });
+  };
+
+  const handleCopyContext = () => {
+    const context = answers.map(answer => answer.context).join('\t');
+    navigator.clipboard.writeText(context).then(() => {
       alert('Scores copied to clipboard!');
     }).catch(err => {
       console.error('Failed to copy scores: ', err);
@@ -91,22 +128,32 @@ export default function Home() {
           <Typography variant="h5">Company Analysis</Typography>
           <Switch checked={darkMode} onChange={() => setDarkMode(!darkMode)} />
         </Box>
-        <FormControl fullWidth sx={{ mb: 2 }}>
-          <InputLabel id="company-select-label">Select a Company</InputLabel>
-          <Select
-            labelId="company-select-label"
-            id="company-select"
-            value={selectedCompany}
-            label="Select a Company"
-            onChange={handleCompanySelect}
-          >
-            {companies.map((company) => (
-              <MenuItem key={company.id} value={company.name}>
-                {company.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+          <FormControl fullWidth>
+            <InputLabel id="company-select-label">Select a Company</InputLabel>
+            <Select
+              labelId="company-select-label"
+              id="company-select"
+              value={selectedCompany}
+              label="Select a Company"
+              onChange={handleCompanySelect}
+            >
+              {companies.map((company) => (
+                <MenuItem key={company.id} value={company.name}>
+                  {company.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <form onSubmit={handleNewCompanySubmit}>
+            <TextField
+              label="Enter a new company name"
+              value={newCompanyName}
+              onChange={(e) => setNewCompanyName(e.target.value)}
+              sx={{ width: '100%' }}
+            />
+          </form>
+        </Box>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             <CircularProgress />
@@ -121,7 +168,9 @@ export default function Home() {
                     <TableBody>
                       <TableRow>
                         {answers.map((answer) => (
-                          <TableCell key={answer.questionId}>{answer.score || 'N/A'}</TableCell>
+                          <TableCell key={answer.questionId}>{
+                              answer.score || 'N/A'
+                            }</TableCell>
                         ))}
                       </TableRow>
                     </TableBody>
@@ -129,6 +178,12 @@ export default function Home() {
                 </TableContainer>
                 <Button variant="contained" onClick={handleCopyScores} sx={{ mt: 1 }}>
                   Copy Scores
+                </Button>
+                <Button variant="contained" onClick={handleCopyExplanantions} sx={{ mt: 1 }}>
+                  Copy Explanantions
+                </Button>
+                <Button variant="contained" onClick={handleCopyContext} sx={{ mt: 1 }}>
+                  Copy Context
                 </Button>
               </Box>
             )}
