@@ -2,7 +2,7 @@ import { Pinecone } from "@pinecone-database/pinecone";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { OpenAI } from "openai";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function POST(req) {
     const pc = new Pinecone({
